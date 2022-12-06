@@ -1,25 +1,29 @@
 package in.reqres;
 
+import in.reqres.models.*;
 import org.junit.jupiter.api.Test;
 
+import static in.reqres.specs.IdUsersSpecs.idResponseUserSpec;
+import static in.reqres.specs.IdUsersSpecs.idUsersSpec;
+import static in.reqres.specs.RegisterUnsuccessfulSpecs.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static in.reqres.specs.UpdateUserSpecs.*;
 import static io.restassured.RestAssured.given;
-import static io.restassured.http.ContentType.JSON;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
 
 public class ReqresInTest {
 
     @Test
     void idUsersTest() {
-
         given()
-                .log().uri()
+                .spec(idUsersSpec)
                 .when()
-                .get("https://reqres.in/api/users?page=2")
+                .get("")
                 .then()
-                .log().status()
-                .log().body()
-                .statusCode(200)
-                .body("data.id", hasItems(7, 8, 9, 10, 11, 12));
+                .spec(idResponseUserSpec)
+                .body("data.id", hasItems(1, 2, 3));
+
     }
 
     @Test
@@ -54,35 +58,38 @@ public class ReqresInTest {
 
     @Test
     void updateUserTest() {
-        String data = "{\"name\": \"qa_guru_user\",\n" +
-                "    \"job\": \"qa tester\"}";
-        given()
-                .log().uri()
-                .contentType(JSON)
+        UpdateUserModel data = new UpdateUserModel();
+        data.setName("qa_guru_user");
+        data.setJob("qa tester");
+
+        UpdateUserResponseModel response = (UpdateUserResponseModel) given()
+                .spec(updateRequestUserSpec)
                 .body(data)
                 .when()
-                .post("https://reqres.in/api/users/2")
+                .post()
                 .then()
-                .log().status()
-                .log().body()
-                .body("name", is("qa_guru_user"))
-                .statusCode(201);
+                .spec(updateResponseUserSpec)
+                .extract().as(UpdateUserResponseModel.class);
+        assertThat(response.getName()).isEqualTo("qa_guru_user");
+        assertThat(response.getJob()).isEqualTo("qa tester");
+
     }
 
     @Test
     void registerUnsuccessfulTest() {
-        String data = "{\"email\": \"sydney@fife\"}";
-        given()
-                .log().uri()
-                .contentType(JSON)
+        RegisterUnsuccessfulModel data = new RegisterUnsuccessfulModel();
+        data.setEmail("sydney@fife");
+        RegisterUnsuccessfulModel response = (RegisterUnsuccessfulModel) given()
+                .spec(requestRegisterUnsuccessful)
                 .body(data)
                 .when()
-                .post("https://reqres.in/api/register")
+                .post()
                 .then()
-                .log().status()
-                .log().body()
-                .body("error", is("Missing password"))
-                .statusCode(400);
+                .spec(responseRegisterUnsuccessful)
+                .extract().as(RegisterUnsuccessfulModel.class);
+
+        assertThat(response.getError()).isEqualTo("Missing password");
+
     }
 
 }
